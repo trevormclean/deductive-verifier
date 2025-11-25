@@ -1,6 +1,6 @@
 # parser.py parses a list of tokens into an abstract syntax tree (AST)
 
-from ast import Expr, Const, Var, BinOp, UnOp, Stmt, Assign, Seq, If, Program
+from ast_verif import Expr, Const, Var, BinOp, UnOp, Stmt, Assign, Seq, If, Program
 from lexer import Token
 
 class Parser:
