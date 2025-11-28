@@ -1,4 +1,5 @@
 # lexer.py converts program file text into a list of tokens for the parser
+
 class Token:
     def __init__(self, type, value):
         self.type = type
@@ -64,24 +65,14 @@ class Lexer:
                 word = self.eat_while(lambda ch: ch.isalnum() or ch == '_')
                 if word in {"true", "false"}:
                     tokens.append(Token("BOOL", word == "true"))
-                elif word in {"if", "else", "pre", "post"}:
+                # UPDATED: Added "while" and "invariant" keywords
+                elif word in {"if", "else", "pre", "post", "while", "invariant"}:
                     tokens.append(Token(word.upper(), None))
                 else:
                     tokens.append(Token("VAR", word))
                 continue
 
-            raise Exception(f"Unkown character: {c}")
+            raise Exception(f"Unknown character: {c}")
         
         tokens.append(Token("EOF", None))
         return tokens
-            
-                
-
-            
-
-
-
-
-
-
-    

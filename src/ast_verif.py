@@ -40,7 +40,11 @@ class If(Stmt):
         self.then_block = then_block
         self.else_block = else_block
 
-
+class While(Stmt):
+    def __init__(self, cond: Expr, invariant: Expr, body: Stmt):
+        self.cond = cond           # loop condition B
+        self.invariant = invariant # loop invariant I
+        self.body = body           # loop body S
 class Program:
     def __init__(self, pre: Expr, body: Stmt, post: Expr):
         self.pre = pre

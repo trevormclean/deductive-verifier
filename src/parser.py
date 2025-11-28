@@ -1,6 +1,6 @@
 # parser.py parses a list of tokens into an abstract syntax tree (AST)
 
-from ast_verif import Expr, Const, Var, BinOp, UnOp, Stmt, Assign, Seq, If, Program
+from ast_verif import Expr, Const, Var, BinOp, UnOp, Stmt, Assign, Seq, If, While, Program
 from lexer import Token
 
 class Parser:
@@ -71,6 +71,16 @@ class Parser:
             else_block = self.parse_stmt_list()
             self.eat("}")
             return If(cond, then_block, else_block)
+        # NEW: While loop: while (e) invariant I { S }
+        if token.type == "WHILE":
+            self.eat("WHILE")
+            cond = self.parse_expr()
+            self.eat("INVARIANT")
+            invariant = self.parse_expr()
+            self.eat("{")
+            body = self.parse_stmt_list()
+            self.eat("}")
+            return While(cond, invariant, body)
         
         raise Exception(f"Unknown token {token}")
     
@@ -146,8 +156,3 @@ class Parser:
             self.eat(")")
             return expr
         raise Exception(f"Unknown token {token}")
-    
-
-
-    
-    

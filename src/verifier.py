@@ -4,7 +4,7 @@
 
 import sys
 from typing import Dict, Set
-from ast_verif import Program, Assign, Seq, If, Var, Const, BinOp, UnOp
+from ast_verif import Program, Assign, Seq, If, While, Var, Const, BinOp, UnOp
 from lexer import Lexer
 from parser import Parser
 from z3 import Solver, Not, Implies, And, Or, BoolVal, IntVal, Int, Bool, sat, unsat, simplify
@@ -43,23 +43,47 @@ def substitute(expr, varname: str, replacement):
     raise Exception(f"substitute: unknown expr type {type(expr)}")
 
 # WP Rules
-def wp(stmt, post):
+def wp(stmt, post, side_vcs=None):
     if stmt is None:
         return clone_expr(post)
     if isinstance(stmt, Assign):
         return substitute(post, stmt.var.name, stmt.expr)
     if isinstance(stmt, Seq):
-        inner = wp(stmt.second, post)
-        return wp(stmt.first, inner)
+        inner = wp(stmt.second, post, side_vcs)
+        return wp(stmt.first, inner, side_vcs)
     if isinstance(stmt, If):
-        wp_then = wp(stmt.then_block, post)
-        wp_else = wp(stmt.else_block, post)
+        wp_then = wp(stmt.then_block, post, side_vcs)
+        wp_else = wp(stmt.else_block, post, side_vcs)
         part1 = BinOp(stmt.cond, "->", wp_then)
         part2 = BinOp(UnOp("!", stmt.cond), "->", wp_else)
         return BinOp(part1, "&&", part2)
+
+    if isinstance(stmt, While):
+        I = stmt.invariant
+        B = stmt.cond
+        S = stmt.body
+        
+        body_wp = wp(S, clone_expr(I), side_vcs)
+        
+        vc_preserve = BinOp(
+            BinOp(clone_expr(I), "&&", clone_expr(B)),
+            "->",
+            body_wp
+        )
+        
+        vc_establish = BinOp(
+            BinOp(clone_expr(I), "&&", UnOp("!", clone_expr(B))),
+            "->",
+            clone_expr(post)
+        )
+        
+        if side_vcs is not None:
+            side_vcs.append(("invariant_preservation", vc_preserve))
+            side_vcs.append(("postcondition_establishment", vc_establish))
+        
+        return clone_expr(I)
     raise Exception(f"wp: unknown stmt type {type(stmt)}")
 
-# Collect var usages for infering var types
 def collect_var_usage(expr, usage: Dict[str, Set[str]]):
     if expr is None:
         return
@@ -122,6 +146,10 @@ def infer_var_types(program: Program) -> Dict[str, str]:
         elif isinstance(s, If):
             collect_var_usage(s.cond, usage)
             walk(s.then_block); walk(s.else_block)
+        elif isinstance(s, While):
+            collect_var_usage(s.cond, usage)
+            collect_var_usage(s.invariant, usage)
+            walk(s.body)
     walk(program.body)
     types: Dict[str, str] = {}
     for v, hints in usage.items():
@@ -179,23 +207,34 @@ def build_env(var_types: Dict[str, str]):
 
 # Check VCs
 def check_verification(program: Program, simplify_vc=True):
-    wp_expr = wp(program.body, program.post)
+    side_vcs = []
+    wp_expr = wp(program.body, program.post, side_vcs)
     var_types = infer_var_types(program)
     env = build_env(var_types)
+    
+    # Main VC: P → wp(S, Q)
     pre_z3 = expr_to_z3(program.pre, env)
     wp_z3 = expr_to_z3(wp_expr, env)
-    vc = Implies(pre_z3, wp_z3)
-    if simplify_vc:
-        vc = simplify(vc)
-    s = Solver()
-    s.add(Not(vc))
-    res = s.check()
-    if res == unsat:
-        return True, None
-    elif res == sat:
-        return False, s.model()
-    else:
-        return False, None
+    main_vc = Implies(pre_z3, wp_z3)
+    
+    # Collect all VCs to check
+    all_vcs = [("main", main_vc)]
+    for name, vc_expr in side_vcs:
+        all_vcs.append((name, expr_to_z3(vc_expr, env)))
+    
+    # Check each VC
+    for vc_name, vc in all_vcs:
+        if simplify_vc:
+            vc = simplify(vc)
+        s = Solver()
+        s.add(Not(vc))
+        res = s.check()
+        if res == sat:
+            return False, s.model()
+        elif res != unsat:
+            return False, None
+    
+    return True, None
 
 # Verify programs
 def main(argv):
@@ -222,4 +261,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv)
-
