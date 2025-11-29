@@ -1,0 +1,8 @@
+pre x >= 0;
+post y == x;
+{
+    y := 0;
+    while (y < x) invariant y <= x {
+        y := y + 1;
+    }
+}

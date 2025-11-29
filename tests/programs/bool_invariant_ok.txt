@@ -1,0 +1,7 @@
+pre b == true;
+post b == true;
+{
+    while (x > 0) invariant b == true {
+        x := x - 1;
+    }
+}

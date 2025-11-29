@@ -1,0 +1,7 @@
+# Test comments and whitespace
+pre x == 1;
+post y == 2;
+{
+    # body comment
+    y := x + 1;  # trailing comment
+}

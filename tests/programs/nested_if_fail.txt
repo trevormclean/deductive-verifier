@@ -1,0 +1,15 @@
+pre true;
+post z == x;
+{
+    if (x >= 0) {
+        if (x > 10) {
+            z := x - 10;
+        }
+        else {
+            z := 0;
+        }
+    }
+    else {
+        z := 0 - x;
+    }
+}
