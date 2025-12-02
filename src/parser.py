@@ -1,7 +1,18 @@
 # parser.py parses a list of tokens into an abstract syntax tree (AST)
 
-from ast_verif import Expr, Const, Var, BinOp, UnOp, Stmt, Assign, Seq, If, While, Program
-from lexer import Token
+from ast_verif import Const, Var, BinOp, UnOp, Assign, Seq, If, While, Program
+from lexer import Lexer
+
+# Given a filename, build the AST for the file's program
+def buildProgramAST(filename):
+    with open(filename, "r") as f:
+        text = f.read()
+
+    text = open(filename).read()
+    tokens = Lexer(text).tokenize()
+    parser = Parser(tokens)
+    program = parser.parse_program()
+    return program
 
 class Parser:
     def __init__(self, tokens):

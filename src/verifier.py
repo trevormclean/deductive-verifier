@@ -5,8 +5,7 @@
 import sys
 from typing import Dict, Set
 from ast_verif import Program, Assign, Seq, If, While, Var, Const, BinOp, UnOp
-from lexer import Lexer
-from parser import Parser
+from parser import buildProgramAST
 from z3 import Solver, Not, Implies, And, Or, BoolVal, IntVal, Int, Bool, sat, unsat, simplify
 
 def clone_expr(e):
@@ -242,10 +241,8 @@ def main(argv):
         print("Usage: python verifier.py [program_file]")
         sys.exit(1)
     path = argv[1]
-    text = open(path).read()
-    tokens = Lexer(text).tokenize()
-    parser = Parser(tokens)
-    program = parser.parse_program()
+    
+    program = buildProgramAST(path)
 
     ok, model = check_verification(program)
     if ok:
